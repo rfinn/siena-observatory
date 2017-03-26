@@ -21,7 +21,7 @@ USEAGE:
 
    
 
-PROCEFURE:
+PROCEDURE:
    This code uses the Lomb Scargle method to calculate the FFT for data
    that are taken at unequal time intervals.  See
 
