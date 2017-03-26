@@ -123,9 +123,9 @@ ay = ay*astep
 az = az*astep         
 
 
-deltatx = np.array((tx - tx[0])/1000.,float)
-deltaty = np.array((ty - ty[0])/1000.,float)
-deltatz = np.array((tz - tz[0])/1000.,float)
+deltatx = np.array((tx - tx[0]),'f')/1000.
+deltaty = np.array((ty - ty[0]),'f')/1000.
+deltatz = np.array((tz - tz[0]),'f')/1000.
 
 freqx, powerx = LombScargle(deltatx,ax).autopower()
 freqy, powery = LombScargle(deltaty,ay).autopower()
@@ -135,10 +135,10 @@ freqz, powerz = LombScargle(deltatz,az).autopower()
 alldat = np.zeros((nlines,6))
 alldat[:,0] = deltatx
 alldat[:,1] = ax
-alldat[:,0] = deltaty
-alldat[:,1] = ay
-alldat[:,0] = deltatz
-alldat[:,1] = az
+alldat[:,2] = deltaty
+alldat[:,3] = ay
+alldat[:,4] = deltatz
+alldat[:,5] = az
 
 #outfile = open(datfile+'.csv','w')
 np.savetxt(args.datfile+'.csv',alldat,fmt='%.8e',delimiter=',')
