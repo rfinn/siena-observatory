@@ -132,17 +132,18 @@ freqy, powery = LombScargle(deltaty,ay).autopower()
 freqz, powerz = LombScargle(deltatz,az).autopower()
 
 # write out data as csv?
-alldat = np.zeros((nlines,6))
-alldat[:,0] = deltatx
-alldat[:,1] = ax
-alldat[:,2] = deltaty
-alldat[:,3] = ay
-alldat[:,4] = deltatz
-alldat[:,5] = az
+tdat = np.zeros((nlines,3),dtype = 'f')
+tdat[:,0] = deltatx
+tdat[:,1] = deltaty
+tdat[:,2] = deltatz
+alldat = np.zeros((nlines,3))
+alldat[:,0] = ax
+alldat[:,1] = ay
+alldat[:,2] = az
 
 #outfile = open(datfile+'.csv','w')
-np.savetxt(args.datfile+'.csv',alldat,fmt='%.8e',delimiter=',')
-
+np.savetxt(args.datfile+'-accel.csv',alldat,fmt='%.8e',delimiter=',')
+np.savetxt(args.datfile+'-time.csv',tdat,fmt='%.6e',delimiter=',')
 if args.plot:
     plt.figure(figsize=(10,6))
     plt.subplots_adjust(hspace=.3,top=.95,left=.1,right=.95)
