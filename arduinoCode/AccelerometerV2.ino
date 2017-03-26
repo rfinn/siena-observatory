@@ -1,22 +1,13 @@
 /*
- Chat  Server
 
- A simple server that distributes any incoming messages to all
- connected clients.  To use telnet to  your device's IP address and type.
- You can see the client's input in the serial monitor as well.
-
- This example is written for a network using WPA encryption. For
- WEP or WPA, change the WiFi.begin() call accordingly.
+This program: 
+- connects to wireless network, 
+- looks for a connection from an outside server
+- reads acceleration data
+- sends the acceleration data using UDP
 
 
- Circuit:
- * WiFi shield attached
-
- created 18 Dec 2009
- by David A. Mellis
- modified 31 May 2012
- by Tom Igoe
-
+Spliced together code for MMA8451 Accelerometer and WIFI101 card.
 
 changes by R Finn:
 - V2 uses udp to send data
@@ -42,15 +33,10 @@ Adafruit_MMA8451 mma = Adafruit_MMA8451();
 char ssid[] = "SOS_Wireless"; //  your network SSID (name)
 char pass[] = "secretPassword";    // your network password (use for WPA, or use as key for WEP)
 
-//char ssid[] = "NETGEAR28"; //  your network SSID (name)
-//char pass[] = "rustichill763";    // your network password (use for WPA, or use as key for WEP)
-
 int keyIndex = 0;            // your network key Index number (needed only for WEP)
 
 int status = WL_IDLE_STATUS;
 WiFiServer server(23);
-
-
 
 unsigned int localPort = 23;
 
@@ -104,8 +90,6 @@ void setup() {
   
   Serial.print("Range = "); Serial.print(2 << mma.getRange());  
   Serial.println("G");
-  //sensors_event_t event; // set up event structure for reading accelerometer
-
   Udp.begin(localPort);
 }
 
@@ -137,7 +121,6 @@ void loop() {
 
    // read accelerometer
    mma.read();
-   //Serial.println(mma.x);   
    
    // send a reply, to the IP address and port that sent us the packet we received
    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
