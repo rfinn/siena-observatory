@@ -177,12 +177,12 @@ if args.plot:
 if args.plotly:
 
 
-    trace0 = go.Scatter(x=tx,y=ax,
+    trace0 = go.Scatter(x=tx,y=ax-np.mean(ax),
                     mode='markers',
                     name='ax',
                     )
-    trace1 = go.Scatter(x=ty,y=ay,mode='markers',name='ay')
-    trace2 = go.Scatter(x=tz,y=az,mode='markers',name='az')
+    trace1 = go.Scatter(x=ty,y=ay-np.mean(ay),mode='markers',name='ay')
+    trace2 = go.Scatter(x=tz,y=az-np.mean(az),mode='markers',name='az')
     data = go.Data([trace0,trace1, trace2])
 
     layout = go.Layout(dict(title = 'Acceleration vs. Time',
