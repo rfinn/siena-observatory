@@ -25,7 +25,7 @@ from datetime import timedelta
 
 UDP_IP = '10.26.1.65'
 UDP_PORT = 23
-BUFFER_SIZE = 4 # not sure what the units of this are
+BUFFER_SIZE = 1024 # not sure what the units of this are
 
 s= None
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -40,6 +40,8 @@ else:
     #startTime = datetime.now()
     i=0
     while i < 4004:
+        #data,addr=s.recvfrom(BUFFER_SIZE)
+        #print data,addr
         print datetime.now().time(), s.recv(BUFFER_SIZE)
         i += 1
     #endTime = datetime.now()
