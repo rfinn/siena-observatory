@@ -83,7 +83,7 @@ i = 0
 for line in infile1:
     if line.find('Hello') > -1:
         continue
-    if len(line) < 1: # skip blank lines
+    if len(line) < 2: # skip blank lines
         continue
     if line.find('N') > -1:
         ncount = 1
@@ -127,16 +127,28 @@ deltatx = np.array((tx - tx[0]),'f')/1000.
 deltaty = np.array((ty - ty[0]),'f')/1000.
 deltatz = np.array((tz - tz[0]),'f')/1000.
 
+keepflag = (deltatx > 0.) & (deltaty > 0.) & (deltatz > 0.)
+ax=ax[keepflag]
+ay=ay[keepflag]
+az=az[keepflag]
+deltatx = deltatx[keepflag]
+deltaty = deltaty[keepflag]
+deltatz = deltatz[keepflag]
+
+tx = tx[keepflag]
+ty = ty[keepflag]
+tz = tz[keepflag]
+
 freqx, powerx = LombScargle(deltatx,ax).autopower()
 freqy, powery = LombScargle(deltaty,ay).autopower()
 freqz, powerz = LombScargle(deltatz,az).autopower()
 
 # write out data as csv?
-tdat = np.zeros((nlines,3),dtype = 'f')
+tdat = np.zeros((sum(keepflag),3),dtype = 'f')
 tdat[:,0] = deltatx
 tdat[:,1] = deltaty
 tdat[:,2] = deltatz
-alldat = np.zeros((nlines,3))
+alldat = np.zeros((sum(keepflag),3))
 alldat[:,0] = ax
 alldat[:,1] = ay
 alldat[:,2] = az
@@ -169,7 +181,7 @@ if args.plot:
     plt.scatter(freqz,(powerz)+.02,s=10,c='g',edgecolors='None',label='ax')
     plt.xlabel('$Frequency \ (Hz)$',fontsize=16)
     plt.ylabel('$Power$',fontsize=16)
-    #plt.xlim(0,250.)
+    plt.xlim(0,250.)
     plt.legend(loc='upper right',scatterpoints=1)
     #plt.savefig('acceleration-vs-time.png')
     
