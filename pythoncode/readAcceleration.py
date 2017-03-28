@@ -22,11 +22,17 @@ WRITTEN BY:
 import socket
 from datetime import datetime
 from datetime import timedelta
+import argparse
+
+parser = argparse.ArgumentParser(description = 'This code reads acceleration from arduino over wireless upd connection.  An example of running the code from the command line is:   python plotAcceleration.py > junk-2017Mar25 --readNevents N')
+parser.add_argument('--readNevents', dest = 'N', default=100,help = 'Number of data events to read.  If not set, the program will read until it is killed')
+
 
 UDP_IP = '10.26.1.65'
 UDP_PORT = 23
 BUFFER_SIZE = 1024 # not sure what the units of this are
 
+keep_reading = True
 s= None
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -39,7 +45,7 @@ else:
     data,addr = s.recvfrom(BUFFER_SIZE)
     #startTime = datetime.now()
     i=0
-    while i < 4004:
+    while keep_reading:
         #data,addr=s.recvfrom(BUFFER_SIZE)
         #print data,addr
         print datetime.now().time(), s.recv(BUFFER_SIZE)
