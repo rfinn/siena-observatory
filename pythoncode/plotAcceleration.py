@@ -174,7 +174,7 @@ if args.plot:
     plt.ylabel('$Acceleration \ (m/s^2) $',fontsize=16)
     plt.legend(loc='upper right',scatterpoints=1)
     #plt.xlim(min(tx),max(tx))
-    
+    plt.ylim(-2,2)
     plt.subplot(2,1,2)
     plt.plot(freqx,(powerx),'c',label='ax')
     plt.scatter(freqy,(powery)+.01,s=10,c='orange',edgecolors='None',label='ax')
