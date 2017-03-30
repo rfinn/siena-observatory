@@ -60,17 +60,12 @@ if args.plotly:
 ## Read in data file
 print args.datfile
 infile1 = open(args.datfile,'r')
-nlines=0
-for line in infile1:
-    if line.find('N') > -1:
-        nlines += 1
+nlines=len(infile1.readlines())
 infile1.close()
 print 'number of data points = ',nlines
 
 # set up data arrays
-tx = np.zeros(nlines,dtype='datetime64[ms]') # time stamp
-ty = np.zeros(nlines,dtype='datetime64[ms]') # time stamp
-tz = np.zeros(nlines,dtype='datetime64[ms]') # time stamp
+t = np.zeros(nlines,dtype='datetime64[ms]') # time stamp
 ax = np.zeros(nlines) # x acceleration
 ay = np.zeros(nlines) # y acceleration
 az = np.zeros(nlines) # z acceleration
@@ -78,39 +73,22 @@ az = np.zeros(nlines) # z acceleration
 
 # read in data file
 infile1 = open(args.datfile,'r')
-ncount=0
 i = 0
 for line in infile1:
     if line.find('Hello') > -1:
         continue
     if len(line) < 2: # skip blank lines
         continue
-    if line.find('N') > -1:
-        ncount = 1
-        continue
-    else:
-        f = line.split()
+    f = line.split()
         #print f
     if len(f) < 1:
         continue
-    if ncount == 1:
-        tx[i] = dateutil.parser.parse(str(f[0]))#, '%H:%M:%S:%f')
-        ax[i] = float(f[1])
-        ncount += 1
-        #i += 1
-        continue
-    elif ncount == 2:
-        ty[i] = dateutil.parser.parse(str(f[0]))
-        ay[i] = float(f[1])
-        ncount += 1
-        #i += 1
-        continue
-    if ncount == 3:
-        tz[i] = dateutil.parser.parse(str(f[0])) 
-        az[i] = float(f[1])
-        ncount = 0
-        i += 1
-        continue
+    t[i] = dateutil.parser.parse(str(f[0]))#, '%H:%M:%S:%f')
+    ax[i] = float(f[1])
+    ay[i] = float(f[2])
+    az[i] = float(f[3])
+    i += 1
+
 infile1.close()
 
 # convert acceleration to m/s^2
@@ -123,43 +101,31 @@ ay = ay*astep
 az = az*astep         
 
 
-deltatx = np.array((tx - tx[0]),'f')/1000.
-deltaty = np.array((ty - ty[0]),'f')/1000.
-deltatz = np.array((tz - tz[0]),'f')/1000.
+deltat = np.array((t - t[0]),'f')/1000.
 
-keepflag = (deltatx > 0.) & (deltaty > 0.) & (deltatz > 0.)
+keepflag = (deltat > 0.) 
 ax=ax[keepflag]
 ay=ay[keepflag]
 az=az[keepflag]
-deltatx = deltatx[keepflag]
-deltaty = deltaty[keepflag]
-deltatz = deltatz[keepflag]
+deltat = deltat[keepflag]
 
-tx = tx[keepflag]
-ty = ty[keepflag]
-tz = tz[keepflag]
+t = t[keepflag]
 
-freqx, powerx = LombScargle(deltatx,ax).autopower()
-freqy, powery = LombScargle(deltaty,ay).autopower()
-freqz, powerz = LombScargle(deltatz,az).autopower()
+freqx, powerx = LombScargle(deltat,ax).autopower()
+freqy, powery = LombScargle(deltat,ay).autopower()
+freqz, powerz = LombScargle(deltat,az).autopower()
 
 # write out data as csv?
-tdat = np.zeros((sum(keepflag),3),dtype = 'f')
-tdat[:,0] = deltatx
-tdat[:,1] = deltaty
-tdat[:,2] = deltatz
 alldat = np.zeros((sum(keepflag),3))
 alldat[:,0] = ax
 alldat[:,1] = ay
 alldat[:,2] = az
 
-plottx=tx.astype(dt.datetime)
-plotty=ty.astype(dt.datetime)
-plottz=tz.astype(dt.datetime)
+plott=t.astype(dt.datetime)
 
 #outfile = open(datfile+'.csv','w')
 np.savetxt(args.datfile+'-accel.csv',alldat,fmt='%.8e',delimiter=',')
-np.savetxt(args.datfile+'-time.csv',tdat,fmt='%.6e',delimiter=',')
+np.savetxt(args.datfile+'-time.csv',deltat,fmt='%.6e',delimiter=',')
 if args.plot:
     plt.figure(figsize=(10,6))
     plt.subplots_adjust(hspace=.3,top=.95,left=.1,right=.95)
@@ -167,18 +133,18 @@ if args.plot:
     xfmt = mdates.DateFormatter('%H:%M:%S')
     plt.gca().xaxis.set_major_formatter(xfmt)
 
-    plt.plot(plottx,ax-np.mean(ax),'c',label='ax')#,s=10,c='c',edgecolors='None',label='ax')
-    plt.scatter(plotty,ay-np.mean(ay)+.2,s=10,c='orange',edgecolors='None',label='ay')
-    plt.scatter(plottz,az-np.mean(az)-.2,s=10,c='g',edgecolors='None',label='az')
+    plt.plot(plott,ax-np.mean(ax),'c',label='ax')#,s=10,c='c',edgecolors='None',label='ax')
+    plt.plot(plott,ay-np.mean(ay)+.2,c='orange',label='ay')#,s=10,edgecolors='None',label='ay')
+    plt.plot(plott,az-np.mean(az)-.2,c='g',label='az')#,s=10,edgecolors='None',label='az')
     plt.xlabel('$Time$', fontsize=16)
     plt.ylabel('$Acceleration \ (m/s^2) $',fontsize=16)
     plt.legend(loc='upper right',scatterpoints=1)
     #plt.xlim(min(tx),max(tx))
-    plt.ylim(-2,2)
+    #plt.ylim(-2,2)
     plt.subplot(2,1,2)
     plt.plot(freqx,(powerx),'c',label='ax')
-    plt.scatter(freqy,(powery)+.01,s=10,c='orange',edgecolors='None',label='ax')
-    plt.scatter(freqz,(powerz)+.02,s=10,c='g',edgecolors='None',label='ax')
+    plt.plot(freqy,(powery),c='orange',label='ay')#,s=10,edgecolors='None',)
+    plt.plot(freqz,(powerz),c='g',label='az')#,s=10,edgecolors='None',label='ax')
     plt.xlabel('$Frequency \ (Hz)$',fontsize=16)
     plt.ylabel('$Power$',fontsize=16)
     plt.xlim(0,250.)

@@ -25,8 +25,10 @@ from datetime import timedelta
 import argparse
 
 parser = argparse.ArgumentParser(description = 'This code reads acceleration from arduino over wireless upd connection.  An example of running the code from the command line is:   python plotAcceleration.py > junk-2017Mar25 --readNevents N')
-parser.add_argument('--readNevents', dest = 'N', default=100,help = 'Number of data events to read.  If not set, the program will read until it is killed')
+parser.add_argument('--readNevents', dest = 'N', default=0,help = 'Number of data events to read.  If not set, the program will read until it is killed')
 
+
+args = parser.parse_args()
 
 UDP_IP = '10.26.1.65'
 UDP_PORT = 23
@@ -45,10 +47,14 @@ else:
     data,addr = s.recvfrom(BUFFER_SIZE)
     #startTime = datetime.now()
     i=0
-    while keep_reading:
-        #data,addr=s.recvfrom(BUFFER_SIZE)
-        #print data,addr
-        print datetime.now().time(), s.recv(BUFFER_SIZE)
-        i += 1
+    
+    if float(args.N) < 0.1:
+        while keep_reading:
+            print datetime.now().time(), s.recv(BUFFER_SIZE)
+    else:
+        while i < int(args.N):
+            print datetime.now().time(), s.recv(BUFFER_SIZE)
+            i += 1
+
     #endTime = datetime.now()
 #print 'delta T =',endTime-startTime
