@@ -122,45 +122,12 @@ void loop() {
 
    // read accelerometer
    mma.read();
-   //accel[0]=mma.x;
-   //accel[1]=mma.y;
-   //accel[2]=mma.z;
-   // send a reply, to the IP address and port that sent us the packet we received
-
    sprintf(msg, "%d  %d  %d", mma.x,mma.y,mma.z);
    //Serial.print(msg);
    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
    Udp.print(msg); // signal new acceleration measurement
    Udp.endPacket();
-   
-   Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
     
-//   // create a string of x,y,z acceleration?
-//   // or send each one separately
-//   Udp.write('N'); // signal new acceleration measurement
-//   Udp.endPacket();
-//
-//
-//   Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-//   Udp.print(mma.x);
-//   //Udp.write(accel,sizeof(accel));
-//   Udp.endPacket();
-//   //Serial.print(accel);
-//   Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-//   //Udp.print(accel);
-//   Udp.print(mma.y);
-//   Udp.endPacket();
-//   Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-//   Udp.print(mma.z);
-//   Udp.endPacket();
-//   //Serial.println(mma.x);
-//   //Serial.println(mma.y);
-//   //Serial.println(mma.z);
-   
-
-   //Udp.write(mma.y, 1.75);
-   //Udp.write(mma.z, 1.75);
-   
 }
 
 
