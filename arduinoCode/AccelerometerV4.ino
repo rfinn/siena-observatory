@@ -33,8 +33,9 @@ Adafruit_MMA8451 mma = Adafruit_MMA8451();
 char ssid[] = "SOS_Wireless"; //  your network SSID (name)
 char pass[] = "secretPassword";    // your network password (use for WPA, or use as key for WEP)
 char msg[20];
-int keyIndex = 0;            // your network key Index number (needed only for WEP)
-
+int keyIndex = 0; // your network key Index number (needed only for WEP)
+int nreads = 1;
+//int adata[nreads];
 int status = WL_IDLE_STATUS;
 WiFiServer server(23);
 
@@ -121,6 +122,16 @@ void loop() {
    }
 
    // read accelerometer
+
+//   for(count1 = 0; count1 < 50; count1++)
+//   {
+//   dataString += analogRead(A0);
+//   dataString += ",";
+//   
+//   delay(10);
+//   }
+
+   //i=0;
    mma.read();
    sprintf(msg, "%d  %d  %d", mma.x,mma.y,mma.z);
    //Serial.print(msg);
