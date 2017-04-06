@@ -134,8 +134,8 @@ if args.plot:
     plt.gca().xaxis.set_major_formatter(xfmt)
 
     plt.plot(plott,ax-np.mean(ax),'c',label='ax')#,s=10,c='c',edgecolors='None',label='ax')
-    plt.plot(plott,ay-np.mean(ay)+.2,c='orange',label='ay')#,s=10,edgecolors='None',label='ay')
-    plt.plot(plott,az-np.mean(az)-.2,c='g',label='az')#,s=10,edgecolors='None',label='az')
+    plt.plot(plott,ay-np.mean(ay)+.1,c='orange',label='ay')#,s=10,edgecolors='None',label='ay')
+    plt.plot(plott,az-np.mean(az)-.1,c='g',label='az')#,s=10,edgecolors='None',label='az')
     plt.xlabel('$Time$', fontsize=16)
     plt.ylabel('$Acceleration \ (m/s^2) $',fontsize=16)
     plt.legend(loc='upper right',scatterpoints=1)
