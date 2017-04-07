@@ -74,25 +74,56 @@ void setup() {
     status = WiFi.begin(ssid);
 
     // wait 10 seconds for connection:
-    delay(10000);
+    delay(5000);
   // initialize accelerometer
   }
   Serial.println("Connected to wifi");
   printWiFiStatus();
-    
+  pinMode(LED_BUILTIN, OUTPUT);   
   Serial.println("Starting Adafruit MMA8451 test!");
-  
-  if (! mma.begin()) {
-    Serial.println("Couldnt start");
-    while (1);
-  }
+  delay(2000);  
+  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+  delay(1000); 
+  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);    // wait for a second
+  mma.begin();
+  //if (! mma.begin()) {
+  //  Serial.println("Couldnt start");
+  //  while (1);
+  //}
   Serial.println("MMA8451 found!");
-  
+  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+  delay(1000);                       // wait for a second
   mma.setRange(MMA8451_RANGE_2_G);
-  
+ digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+  delay(1000);                       // wait for a second
   Serial.print("Range = "); Serial.print(2 << mma.getRange());  
   Serial.println("G");
   Udp.begin(localPort);
+
+  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+  delay(1000);                       // wait for a second
+  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+  delay(1000);                       // wait for a second
+
 }
 
 void loop() {

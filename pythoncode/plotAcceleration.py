@@ -66,6 +66,7 @@ print 'number of data points = ',nlines
 
 # set up data arrays
 t = np.zeros(nlines,dtype='datetime64[ms]') # time stamp
+#t = np.zeros(nlines,'f')
 ax = np.zeros(nlines) # x acceleration
 ay = np.zeros(nlines) # y acceleration
 az = np.zeros(nlines) # z acceleration
@@ -81,9 +82,11 @@ for line in infile1:
         continue
     f = line.split()
         #print f
-    if len(f) < 1:
+    if len(f) < 4: #skip partial lines
         continue
+    time=f[0].split(':')
     t[i] = dateutil.parser.parse(str(f[0]))#, '%H:%M:%S:%f')
+    #t[i] = float(time[0])+float(time[1])/60.+float(time[2])/3600.
     ax[i] = float(f[1])
     ay[i] = float(f[2])
     az[i] = float(f[3])
@@ -126,7 +129,8 @@ plott=t.astype(dt.datetime)
 #outfile = open(datfile+'.csv','w')
 np.savetxt(args.datfile+'-accel.csv',alldat,fmt='%.8e',delimiter=',')
 np.savetxt(args.datfile+'-time.csv',deltat,fmt='%.6e',delimiter=',')
-if args.plot:
+
+def plotfigure():
     plt.figure(figsize=(10,6))
     plt.subplots_adjust(hspace=.3,top=.95,left=.1,right=.95)
     plt.subplot(2,1,1)
@@ -149,7 +153,9 @@ if args.plot:
     plt.ylabel('$Power$',fontsize=16)
     plt.xlim(0,250.)
     plt.legend(loc='upper right',scatterpoints=1)
-    #plt.savefig('acceleration-vs-time.png')
+    plt.savefig('acceleration-vs-time.png')
+if args.plot:
+    plotfigure()
     
     
 if args.plotly:

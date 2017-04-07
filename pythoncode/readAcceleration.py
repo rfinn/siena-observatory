@@ -38,7 +38,8 @@ keep_reading = True
 s= None
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-s.sendto('hello', (UDP_IP, UDP_PORT))
+
+s.sendto('ready for data', (UDP_IP, UDP_PORT))
 
 if s is None:
     print('could not open socket')
