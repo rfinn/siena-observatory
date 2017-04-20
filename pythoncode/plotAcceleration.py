@@ -124,7 +124,7 @@ alldat[:,0] = ax
 alldat[:,1] = ay
 alldat[:,2] = az
 
-plott=t.astype(dt.datetime)
+#plott=t.astype(dt.datetime)
 
 #outfile = open(datfile+'.csv','w')
 np.savetxt(args.datfile+'-accel.csv',alldat,fmt='%.8e',delimiter=',')
@@ -137,9 +137,9 @@ def plotfigure():
     xfmt = mdates.DateFormatter('%H:%M:%S')
     plt.gca().xaxis.set_major_formatter(xfmt)
 
-    plt.plot(plott,ax-np.mean(ax),'c',label='ax')#,s=10,c='c',edgecolors='None',label='ax')
-    plt.plot(plott,ay-np.mean(ay)+.1,c='orange',label='ay')#,s=10,edgecolors='None',label='ay')
-    plt.plot(plott,az-np.mean(az)-.1,c='g',label='az')#,s=10,edgecolors='None',label='az')
+    plt.plot(t,ax-np.mean(ax),'c',label='ax')#,s=10,c='c',edgecolors='None',label='ax')
+    plt.plot(t,ay-np.mean(ay)+.1,c='orange',label='ay')#,s=10,edgecolors='None',label='ay')
+    plt.plot(t,az-np.mean(az)-.1,c='g',label='az')#,s=10,edgecolors='None',label='az')
     plt.xlabel('$Time$', fontsize=16)
     plt.ylabel('$Acceleration \ (m/s^2) $',fontsize=16)
     plt.legend(loc='upper right',scatterpoints=1)
