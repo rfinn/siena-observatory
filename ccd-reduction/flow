@@ -1,0 +1,49 @@
+Requirements
+- ccdproc
+
+#### keep in separate routine ######
+For solving WCS and making mosaics:
+- sextractor
+- scamp
+- swarp
+#####################################
+
+import ccdproc
+from ccdproc import ImageFileCollection
+# move any bad files to junk
+
+# make an image collection of all the files in the data directory
+
+# select all files with imagetyp=='bias'
+
+# feed list into ccdproc.combine, output bias
+
+# select all files with imagetyp=='dark'
+
+# combine darks with long exposure time
+
+
+## make flats
+# select all files with imagetyp=='flat'
+
+# combine all flats in the same filter
+
+t = ic2.summary['filter']
+filter_list = set(t)
+
+then loop over filter_list
+
+make filelist with filter=f, imagetyp='flat'
+
+combine files in list
+
+
+# process science frames
+loop over filters:
+
+select images with   filter=f, imagetyp='light'
+ccdproc( bias+, dark+, flat+)
+
+
+# then move on to running scamp and swarp to solve WCS
+# and make mosaics
