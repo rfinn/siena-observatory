@@ -87,8 +87,11 @@ def calcfft():
     plt.plot(freqz,(powerz),c='g',label='az',lw=.5)#,s=10,edgecolors='None',label='ax')
     plt.xlabel('$Frequency \ (Hz)$',fontsize=16)
     plt.ylabel('$Power$',fontsize=16)
-    plt.xlim(0,120)
-    plt.savefig(args.datfile+'fft.png')
+    plt.legend(loc='upper right')
+    plt.xlim(-2,70)
+    plt.ylim(-.00005,.001)
+    plt.title(args.datfile)
+    plt.savefig('plots/'+args.datfile+'-fft.png')
 
 def getoutlier(y,sigma=4,grow=100):
     noise = np.std(y)
@@ -186,6 +189,19 @@ def plotfigure2():
     plt.legend(loc='upper right',scatterpoints=1)
     plt.savefig('acceleration-vs-time.png')
 
+def setxlim(nfigure,xmin,xmax):
+    for i in range(3):
+        plt.figure(nfigure)
+        plt.subplot(3,1,i+1)
+        plt.xlim(xmin,xmax)
+
+def plothist():
+    plt.figure()
+    t=plt.hist(ax-median(ax),bins=100,label='ax')
+    t=plt.hist(ay-median(ay),bins=100,label='ay')
+    t=plt.hist(az-median(az),bins=100,label='az')
+    plt.legend()
+    plt.xlabel('$a_i - median(a_i) (m/s^2) $',fontsize=16)
 
 '''
 infile1 = open(args.datfile,'r')
