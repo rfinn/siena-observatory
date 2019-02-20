@@ -37,15 +37,37 @@ zerocombine=0
 
 
 # replace these with real values
-rdnoise = 99
-gain = 99.
+# for Siena SBIG STL-11000M CCD
+stl_rdnoise = 13. # e-, rms
+stl_gain = .8#e-/ADU unbinned
+stl_gain = 1.6#e-/ADU unbinned
 
 # check theses using 1/28/19 data
 ccdkeyword={'light':'Light Frame','dark':'Dark Frame','flat':'Flat Field','bias':'Bias Frame'}
 
+
+
+def zapcosmic(file_list):
+    i=0
+    nfiles = len(flat_files)
+    for f in file_list:
+        print ('ZAPPING COSMIC RAYS FOR FILE %i OF %i'%(i,nfiles))
+        with fits.open(f) as hdu1:
+            print ('working on ',f)
+
+            # convert data to CCDData format and save header
+            ccd = CCDData(hdu1[0].data, unit=u.adu)
+            header = hdu1[0].header
+            crimage = ccdproc.cosmicray_lacosmic(ccd, gain = float(args.gain), readnoise = float(args.rdnoise))
+            header['HISTORY'] = 'Cosmic rays rejected using ccdproc.cosmicray_lacosmic '
+            fits.writeto('z'+f,crimage,header)
+            hdu1.close()
+        i += 1
+        print ('\n')
+
 # make an image collection of all the files in the data directory
 # z is prefix for galaxies that already have cosmic ray rejection
-ic = ImageFileCollection(os.getcwd(),keywords='*',glob_include='z*.fits')
+ic = ImageFileCollection(os.getcwd(),keywords='*',glob_include='*.fit')
 
 
 # correct for gain
@@ -58,11 +80,13 @@ if zerocombine:
     bias_files = ic.files_filtered(imagetyp = ccdkeyword['bias'])
     # feed list into ccdproc.combine, output bias
 
-    zeros = ccdproc.combine(bias_files,method='average',sigma_clip=True,unit=u.adu)
+    master_bias = ccdproc.combine(bias_files,method='average',sigma_clip=True,unit=u.adu)
     print('writing fits')
-    zeros.write('bias-combined.fits',overwrite=True)
+    master_bias.write('bias-combined.fits',overwrite=True)
 
-
+###################################################
+# COMBINE DARKS
+###################################################
 # identify darks and combine darks with longest exposure time
 
 
@@ -79,80 +103,89 @@ max_exposure = max(exptimes[image_types == ccdkeyword['dark']])
 
 dark_files = ic.files_filtered(imagetyp = ccdkeyword['dark'], exptime = max_exposure)
 
-dark_combined = ccdproc.combine(dark_files,method='average',sigma_clip=True,unit=u.adu)
-
-
-
-'''
-Next time
-
-* subtract bias from dark
-
-* subtract bias from science and flat frames
-
-* subtract dark from science and flat frames by scaling bias-subtracted dark
-
-dark_subtracted = ccdproc.subtract_dark(bias_subtracted, master_dark, exposure_time='exposure', exposure_unit=u.second, scale=True)
-
-
-
-
-* combine flats
-
-
-* correct for gain
-
-gain_correct(ccd, gain, gain_unit=None, add_keyword=True) Correct the gain in the image.
-
-
-
-* run science through ccd proc - subtract bias, a scaled dark, and then flaten
-
-nccd = ccdproc.ccd_process(ccd, oscan='[201:232,1:100]',
-... trim='[1:200, 1:100]',
-... error=True,
-... gain=2.0*u.electron/u.adu,
-... readnoise=5*u.electron,
-... dark_frame=master_dark,
-... exposure_key='exposure',
-... exposure_unit=u.second,
-... dark_scale=True,
-... master_flat=master_flat)
+master_dark = ccdproc.combine(dark_files,method='average',sigma_clip=True,unit=u.adu)
+master_dark.write('dark-combined.fits',overwrite=True)
 
 
 '''
-
+* subtract bias from combined dark frames
 '''
-# feed list into ccdproc.combine, output dark
+
+master_dark_bias = ccdproc.subtract_bias(master_dark, master_bias)
 
 
 
-# combine darks with long exposure time
+###################################################
+# COSMIC RAY REJECTION
+###################################################
+# run LA cosmic on flat field images
+
+flat_files = ic.files_filtered(imagetyp = ccdkeyword['flat'])
+
+zapcosmic(flat_files)
+
+# run LA cosmic on science images
+
+sci_files = ic.files_filtered(imagetyp = ccdkeyword['light'])
+zapcosmic(sci_files)
 
 
-## make flats
-# select all files with imagetyp=='flat'
+# make an image collection of all the files in the data directory
+# z is prefix for galaxies that already have cosmic ray rejection
+icz = ImageFileCollection(os.getcwd(),keywords='*',glob_include='z*.fit')
 
-# combine all flats in the same filter
-
-t = ic2.summary['filter']
-filter_list = set(t)
-
-then loop over filter_list
-
-make filelist with filter=f, imagetyp='flat'
-
-combine files in list
+filters = icz.values('filter')
+image_types = np.array(icz.values('imagetyp'))
 
 
-# process science frames
-loop over filters:
+#####################################################
+###### PROCESS FLAT FIELD IMAGES
+#####################################################
 
-select images with   filter=f, imagetyp='light'
-    fileset = ic.files_filtered(filter='Red',exptime=30.000,imagetyp=ccdkeyword['light'])
-    ccdproc( bias+, dark+, flat+)
+# create a set of unique filters
+all_filters = set(np.array(filters))
+# gets rid of 0.0, which is what the dark 'filter' will come through as
+all_filters.remove('0.0')
+
+# loop through filters, combine all the flats in that filter
+for filt in all_filters:
+    # get of all flats in this filter
+    flat_files = icz.files_filtered(imagetyp = ccdkeyword['flat'], filter = filt) 
+    # combine images into one flat
+    master_flat = ccdproc.combine(flat_files,method='median',sigma_clip=True,scale=np.median,unit=u.adu)
+
+    # subtract bias
+    # subtract the scaled dark
+    master_flat_bias_dark = ccdproc.ccd_process(master_flat,error=True, gain=stl_gain*u.electron/u.adu, readnoise=stl_readnoise*u.electron, dark_frame=master_dark, exposure_key='exposure', exposure_unit=u.second, dark_scale=True)
+    
+    # write output    
+    master_flat_bias_dark.write('flat -'+filt+'.fits',overwrite=True)
 
 
+#####################################################
+###### PROCESS SCIENCE IMAGES
+#####################################################
+
+for filt in all_filters:
+    sci_files = icz.files_filtered(imagetyp = ccdkeyword['light'], filter = filt) 
+    master_flat = 'flat -'+filt+'.fits'
+
+    # write out image with prefix 'fdb' for flat, dark, bias corrected
+
+    for f in sci_files:
+        with fits.open(f) as hdu1:
+            print ('working on ',f)
+    
+            # convert data to CCDData format and save header
+            ccd = CCDData(hdu1[0].data, unit=u.adu)
+            header = hdu1[0].header
+            newccd = ccdproc.ccd_process(f,error=True, gain=stl_gain*u.electron/u.adu, readnoise=stl_readnoise*u.electron, dark_frame=master_dark, exposure_key='exposure', exposure_unit=u.second, dark_scale=True,master_flat = master_flat)
+            header['HISTORY'] = 'Processing by ccdproc: bias, dark, flat '
+            fits.writeto('fdb'+f,newccd,header)
+            hdu1.close()
+
+    
+'''
 # then move on to running scamp and swarp to solve WCS
 # and make mosaics
 
