@@ -35,14 +35,19 @@ import astropy.units as u
 # move any bad files to junk
 
 
-zerocombine = 1
+zerocombine = 0
+darkcombine = 0
 runzapcosmic = 0
-flatcombine = 0
+flatcombine = 1
+process_science = 1
+cleanup = 1
+
+
 # replace these with real values
 # for Siena SBIG STL-11000M CCD
 stl_rdnoise = 13. # e-, rms
 stl_gain = .8#e-/ADU unbinned
-stl_gain = 1.6#e-/ADU unbinned
+stl_gain = 1.6#e-/ADU binned
 
 
 gain = stl_gain*u.electron/u.adu
@@ -65,7 +70,7 @@ def zapcosmic(file_list):
             ccd = CCDData(hdu1[0].data, unit=u.adu)
             header = hdu1[0].header
             crimage = ccdproc.cosmicray_lacosmic(ccd, gain = float(gain.value), readnoise = float(rdnoise.value))
-            header['HISTORY'] = 'Cosmic rays rejected using ccdproc.cosmicray_lacosmic '
+            header['HISTORY'] = '= Cosmic rays rejected using ccdproc.cosmicray_lacosmic '
             fits.writeto('z'+f,crimage,header)
             hdu1.close()
         i += 1
@@ -73,10 +78,7 @@ def zapcosmic(file_list):
 
 # make an image collection of all the files in the data directory
 # z is prefix for galaxies that already have cosmic ray rejection
-ic = ImageFileCollection(os.getcwd(),keywords='*',glob_include='*.fit')
-
-
-# correct for gain
+ic = ImageFileCollection(os.getcwd(),keywords='*',glob_include='*.fit*')
 
 
 # combine bias frames
@@ -92,40 +94,48 @@ if zerocombine:
     gaincorrected_master_bias.write('bias-combined.fits',overwrite=True)
 else:
     print('not combining zeros')
-    print('reading in bias-combined.fits instead')
+    print('\t reading in bias-combined.fits instead')
     hdu1 = fits.open('bias-combined.fits')
-    gaincorrected_master_bias = CCDData(hdu1[0].data, unit=u.electron)
+    header = hdu1[0].header
+    gaincorrected_master_bias = CCDData(hdu1[0].data, unit=u.electron, meta=header)
     hdu1.close()
 ###################################################
 # COMBINE DARKS
 ###################################################
 # identify darks and combine darks with longest exposure time
 
+if darkcombine:
 
-# select all files with imagetyp=='dark'
-# want to read in one set of long exposure dark frames, like 120 s
-# observers should take a set of darks that correspond to longest exposure time
-# e.g. 120s
-exptimes = np.array(ic.values('exptime'))
-image_types = np.array(ic.values('imagetyp'))
+    # select all files with imagetyp=='dark'
+    # want to read in one set of long exposure dark frames, like 120 s
+    # observers should take a set of darks that correspond to longest exposure time
+    # e.g. 120s
+    exptimes = np.array(ic.values('exptime'))
+    image_types = np.array(ic.values('imagetyp'))
 
-max_exposure = max(exptimes[image_types == ccdkeyword['dark']])
+    max_exposure = max(exptimes[image_types == ccdkeyword['dark']])
 
+    dark_files = ic.files_filtered(imagetyp = ccdkeyword['dark'], exptime = max_exposure)
+    master_dark = ccdproc.combine(dark_files,method='average',sigma_clip=True,unit=u.adu)
+    gaincorrected_master_dark = ccdproc.gain_correct(master_dark,gain)
+    '''
+    * subtract bias from combined dark frames
+    '''
 
+    gaincorrected_master_dark_bias = ccdproc.subtract_bias(gaincorrected_master_dark, gaincorrected_master_bias)
 
-dark_files = ic.files_filtered(imagetyp = ccdkeyword['dark'], exptime = max_exposure)
+    print('writing fits file for master dark')
+    gaincorrected_master_dark_bias.write('dark-bias-combined.fits',overwrite=True)
 
-master_dark = ccdproc.combine(dark_files,method='average',sigma_clip=True,unit=u.adu)
-gaincorrected_master_dark = ccdproc.gain_correct(master_dark,gain)
-print('writing fits file for master dark')
-gaincorrected_master_dark.write('dark-combined.fits',overwrite=True)
+else:
+    print('not combining zeros')
+    print('\t reading in dark-bias-combined.fits instead')
+    hdu1 = fits.open('dark-bias-combined.fits')
+    header = hdu1[0].header
+    gaincorrected_master_dark_bias = CCDData(hdu1[0].data, unit=u.electron, meta=header)
+    hdu1.close()
+    
 
-
-'''
-* subtract bias from combined dark frames
-'''
-
-gaincorrected_master_dark_bias = ccdproc.subtract_bias(gaincorrected_master_dark, gaincorrected_master_bias)
 
 print('runzapcosmic = ',runzapcosmic)
 if runzapcosmic:
@@ -147,7 +157,7 @@ if runzapcosmic:
 
 # make an image collection of all the files in the data directory
 # z is prefix for galaxies that already have cosmic ray rejection
-icz = ImageFileCollection(os.getcwd(),keywords='*',glob_include='z*.fit')
+icz = ImageFileCollection(os.getcwd(),keywords='*',glob_include='z*.fit*')
 
 filters = icz.values('filter')
 image_types = np.array(icz.values('imagetyp'))
@@ -188,32 +198,32 @@ else:
 #####################################################
 ###### PROCESS SCIENCE IMAGES
 #####################################################
-print('\n Processing science frames!!!')
-for filt in all_filters:
-    sci_files = icz.files_filtered(imagetyp = ccdkeyword['light'], filter = filt) 
-    master_flat = 'flat -'+filt+'.fits'
-    hdu = fits.open(master_flat)
-    gaincorrected_master_flat = CCDData(hdu[0].data, unit=u.electron)
-    hdu.close()
-    # write out image with prefix 'fdb' for flat, dark, bias corrected
-    i=0
-    for f in sci_files:
-        with fits.open(f) as hdu1:
-            print ('working on ',f)
-            # convert data to CCDData format and save header
-            header = hdu1[0].header
-            #ccd = CCDData(hdu1[0].data, unit=u.adu,meta={'exposure':header['exposure']})
-            ccd = CCDData(hdu1[0].data, unit=u.adu,meta=header)
+if process_science:
+    print('\n Processing science frames!!!')
+    for filt in all_filters:
+        sci_files = icz.files_filtered(imagetyp = ccdkeyword['light'], filter = filt) 
+        master_flat = 'flat -'+filt+'.fits'
+        hdu = fits.open(master_flat)
+        gaincorrected_master_flat = CCDData(hdu[0].data, unit=u.electron)
+        hdu.close()
+        # write out image with prefix 'fdb' for flat, dark, bias corrected
+        for f in sci_files:
+            with fits.open(f) as hdu1:
+                print ('working on ',f)
+                print ('imagetype = ',hdu1[0].header['IMAGETYP'])
+                # convert data to CCDData format and save header
+                header = hdu1[0].header
+                #ccd = CCDData(hdu1[0].data, unit=u.adu,meta={'exposure':header['exposure']})
+                ccd = CCDData(hdu1[0].data, unit=u.adu,meta=header)
 
-            newccd = ccdproc.ccd_process(ccd,error=True, gain=gain, readnoise=rdnoise, master_bias = gaincorrected_master_bias, dark_frame=gaincorrected_master_dark_bias, exposure_key='exposure', exposure_unit=u.second, dark_scale=True,master_flat = gaincorrected_master_flat, gain_corrected=True)
-            #newccd = ccdproc.ccd_process(ccd,error=True, gain=gain, readnoise=rdnoise, master_bias = gaincorrected_master_bias,master_flat = gaincorrected_master_flat, dark_frame = gaincorrected_master_dark_bias, exposure_key='exposure', exposure_unit = u.second)
-            header['HISTORY'] = 'Processing by ccdproc: bias, dark, flat '
-            fits.writeto('fdb'+f,newccd,header, overwrite=True)
-            hdu1.close()
-    if i > 2:
-        break
+                newccd = ccdproc.ccd_process(ccd,error=True, gain=gain, readnoise=rdnoise, master_bias = gaincorrected_master_bias, dark_frame=gaincorrected_master_dark_bias, exposure_key='exposure', exposure_unit=u.second, dark_scale=True,master_flat = gaincorrected_master_flat, gain_corrected=True)
 
-    
+                header['HISTORY'] = '= Processing by ccdproc: bias, dark, flat '
+                fits.writeto('fdb'+f,newccd,header, overwrite=True)
+                hdu1.close()
+
+else:
+    print('skipping science frames')    
 '''
 # then move on to running scamp and swarp to solve WCS
 # and make mosaics
@@ -229,18 +239,14 @@ if cleanup:
     # moved processed a subdirectory
     dirname = 'PROCESSED'
     prefix = 'fdb'
-    if os.path.exists(dirname):
-        continue
-    else:
+    if not(os.path.exists(dirname)):
         os.mkdir(dirname)
     os.system('mv '+prefix+'*.fit* '+dirname+'/.')
 
     # move zapped to a subdirectory
     dirname = 'ZAPPED'
     prefix = 'z'
-    if os.path.exists(dirname):
-        continue
-    else:
+    if not(os.path.exists(dirname)):
         os.mkdir(dirname)
     os.system('mv '+prefix+'*.fit* '+dirname+'/.')
 
@@ -248,9 +254,7 @@ if cleanup:
     # move originals to subdirectory
     dirname = 'ORIGINALS'
     prefix =''
-    if os.path.exists(dirname):
-        continue
-    else:
+    if not(os.path.exists(dirname)):
         os.mkdir(dirname)
     os.system('mv '+prefix+'*.fit* '+dirname+'/.')
     
