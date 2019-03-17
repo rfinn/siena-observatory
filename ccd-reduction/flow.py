@@ -1,7 +1,36 @@
 '''
-Requirements
-- ccdproc
 
+GOAL:
+- to reduce a night's worth of ccd data through flatfielding
+
+REQUIREMENTS FOR THE DATA:
+
+In its current version, this program assumes that you have the following calibration files
+- flatfield
+- bias
+- darks
+
+In the near future, we will enable you to indicate that you took only darks, or only bias frames.
+
+Be sure to move any files that are bod (for whatever reason) into a subdirectory (e.g. junk/).
+
+
+USEAGE:
+
+Once the bad files are removed from the directory, type
+
+python ~/github/siena-observatory/ccd-reduction/flow.py
+
+
+
+REQUIRED MODULES:
+- ccdproc
+- astropy
+- numpy (is that worth listing?)
+
+
+################################################################
+NOTES:
 #### keep in separate routine ######
 # For solving WCS and making mosaics:
 # - sextractor
@@ -23,6 +52,8 @@ and sky flats from
 
 /Users/rfinn/Dropbox/Siena/observatory/images/reduced/2018-12-05
 
+################################################################
+
 '''
 
 import ccdproc
@@ -35,9 +66,18 @@ import astropy.units as u
 # move any bad files to junk
 
 
-zerocombine = 0
-darkcombine = 0
-runzapcosmic = 0
+
+#####################################################
+# set the following variables to 1
+# when starting the reduction of a night
+# If you need to repeat a later stage, you
+# can skip the earlier steps (cosmic ray rejection
+# in particular is time consuming.
+#####################################################
+
+zerocombine = 1
+darkcombine = 1
+runzapcosmic = 1
 flatcombine = 1
 process_science = 1
 cleanup = 1
