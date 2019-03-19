@@ -15,12 +15,20 @@ In the near future, we will enable you to indicate that you took only darks, or 
 Be sure to move any files that are bod (for whatever reason) into a subdirectory (e.g. junk/).
 
 
-USEAGE:
+EXAMPLE:
 
-Once the bad files are removed from the directory, type
+* Once the bad files are removed from the directory, type
 
-python ~/github/siena-observatory/ccd-reduction/flow.py
+    python ~/github/siena-observatory/ccd-reduction/flow.py
 
+* Then, fix filenames so science image names end in .fits instead of .fit
+
+    cd PROCESSED
+    python ~/github/siena-observatory/ccd-reduction/fixname.py
+
+* And fix image headers to provide the information that scamp needs
+
+    python ~/github/siena-observatory/ccd-reduction/fixheader.py
 
 
 REQUIRED MODULES:
@@ -51,6 +59,13 @@ testing with data from
 and sky flats from
 
 /Users/rfinn/Dropbox/Siena/observatory/images/reduced/2018-12-05
+
+
+TO DO:
+- add option to subtract bias
+- add option to subtract dark
+- use dark with matching exposure time if it exists
+
 
 ################################################################
 
