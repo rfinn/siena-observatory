@@ -187,10 +187,10 @@ if darkcombine:
 
     
     gaincorrected_master_dark_bias = ccdproc.subtract_bias(gaincorrected_master_dark, gaincorrected_master_bias)
-    '''
+
     print('writing fits file for master dark')
     gaincorrected_master_dark.write('dark-combined.fits',overwrite=True)
-
+    '''
     # combine darks of a given exposure time
     for expt in set_exptime:
         # skip max exposure time - already combined
