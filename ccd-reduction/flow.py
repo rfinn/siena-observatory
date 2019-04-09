@@ -78,6 +78,7 @@ import os
 from astropy.io import fits
 import numpy as np
 import astropy.units as u
+import argparse
 # move any bad files to junk
 
 
@@ -90,13 +91,20 @@ import astropy.units as u
 # in particular is time consuming.
 #####################################################
 
-zerocombine = 1
-darkcombine = 1
-runzapcosmic = 1
-flatcombine = 1
-process_science = 1
-cleanup = 1
 
+
+parser = argparse.ArgumentParser(description ='Process images through flatfiel
+ding')
+parser.add_argument('--nobias', dest = 'nobias', default = False, action = 'store_true', help = 'Skip bias subtraction')
+parser.add_argument('--nodark', dest = 'nodark', default = False, action = 'store_true', help = 'Skip dark subtraction')
+args = parser.parse_args()
+
+zerocombine = 0
+runzapcosmic = 0
+darkcombine = 0
+flatcombine = 0
+process_science = 0
+cleanup = 1
 
 # replace these with real values
 # for Siena SBIG STL-11000M CCD
@@ -115,7 +123,7 @@ ccdkeyword={'light':'Light Frame','dark':'Dark Frame','flat':'Flat Field','bias'
 
 def zapcosmic(file_list):
     i=0
-    nfiles = len(flat_files)
+    nfiles = len(file_list)
     for f in file_list:
         print ('ZAPPING COSMIC RAYS FOR FILE %i OF %i'%(i,nfiles))
         with fits.open(f) as hdu1:
@@ -159,6 +167,8 @@ else:
 ###################################################
 # identify darks and combine darks with longest exposure time
 
+# change to use the dark with the closest exposure time
+
 if darkcombine:
 
     # select all files with imagetyp=='dark'
@@ -166,30 +176,47 @@ if darkcombine:
     # observers should take a set of darks that correspond to longest exposure time
     # e.g. 120s
     exptimes = np.array(ic.values('exptime'))
+    dark_exptimes = exptimes
     image_types = np.array(ic.values('imagetyp'))
 
+    set_exptime=set(exptimes[image_types == ccdkeyword['dark']])
     max_exposure = max(exptimes[image_types == ccdkeyword['dark']])
-
-    dark_files = ic.files_filtered(imagetyp = ccdkeyword['dark'], exptime = max_exposure)
-    master_dark = ccdproc.combine(dark_files,method='average',sigma_clip=True,unit=u.adu)
-    gaincorrected_master_dark = ccdproc.gain_correct(master_dark,gain)
     '''
     * subtract bias from combined dark frames
-    '''
 
+    * skipping for now because bias has more counts that the darks - go figure!
+
+    
     gaincorrected_master_dark_bias = ccdproc.subtract_bias(gaincorrected_master_dark, gaincorrected_master_bias)
-
+    '''
     print('writing fits file for master dark')
-    gaincorrected_master_dark_bias.write('dark-bias-combined.fits',overwrite=True)
+    gaincorrected_master_dark.write('dark-combined.fits',overwrite=True)
+
+    # combine darks of a given exposure time
+    for expt in set_exptime:
+        # skip max exposure time - already combined
+
+        dark_files = ic.files_filtered(imagetyp = ccdkeyword['dark'], exptime = expt)
+        dark = ccdproc.combine(dark_files,method='average',sigma_clip=True,unit=u.adu)
+        gaincorrected_dark = ccdproc.gain_correct(dark,gain)
+        '''
+        * subtract bias from combined dark frames
+    
+        gaincorrected_dark_bias = ccdproc.subtract_bias(gaincorrected_dark, gaincorrected_master_bias)
+        '''
+        print('writing fits file for dark t = ',int(expt))
+        gaincorrected_dark.write('dark-combined-'+str(int(expt))+'.fits',overwrite=True)
+
 
 else:
-    print('not combining zeros')
-    print('\t reading in dark-bias-combined.fits instead')
-    hdu1 = fits.open('dark-bias-combined.fits')
-    header = hdu1[0].header
-    gaincorrected_master_dark_bias = CCDData(hdu1[0].data, unit=u.electron, meta=header)
-    hdu1.close()
-    
+    print('not combining darks')
+    print('\t reading in dark-combined-*.fits instead')
+    darkcollection = ImageFileCollection(os.getcwd(),keywords='*',glob_include='dark-combined*.fit*')
+    dark_exptimes = np.array(ic.values('exptime'))
+    dimage_types = np.array(ic.values('imagetyp'))
+
+    dark_exptimes=set(dark_exptimes[image_types == ccdkeyword['dark']])
+
 
 
 print('runzapcosmic = ',runzapcosmic)
@@ -230,11 +257,20 @@ try:
     all_filters.remove('0.0')
 except KeyError:
     print('no bias frames found after zapping')
+
+
+# read in available dark files
+# dark-bias-
 if flatcombine:     
     # loop through filters, combine all the flats in that filter
     for filt in all_filters:
         # get of all flats in this filter
-        flat_files = icz.files_filtered(imagetyp = ccdkeyword['flat'], filter = filt) 
+        flat_files = icz.files_filtered(imagetyp = ccdkeyword['flat'], filter = filt)
+        #print(filt,flat_files)
+        if len(flat_files) == 0:
+            print('WARNING: no flat images for filter ',filt)
+            print('skipping this filter')
+            continue
         # combine images into one flat
         print('combining flats for filter ',filt)
         master_flat = ccdproc.combine(flat_files,method='median',sigma_clip=True,scale=np.median,unit=u.adu)
@@ -242,7 +278,23 @@ if flatcombine:
         # subtract bias
         # subtract the scaled dark
         print('subtracting bias and scaled dark from combined flat for filter ',filt)
-        master_flat_bias_dark = ccdproc.ccd_process(gaincorrected_master_flat, readnoise=rdnoise, master_bias = gaincorrected_master_bias, dark_frame=gaincorrected_master_dark_bias, exposure_key='exposure', exposure_unit=u.second, dark_scale=True, gain_corrected=True)
+        #master_flat_bias_dark = ccdproc.ccd_process(gaincorrected_master_flat, readnoise=rdnoise, master_bias = gaincorrected_master_bias, dark_frame=gaincorrected_master_dark, exposure_key='exposure', exposure_unit=u.second, dark_scale=True, gain_corrected=True)
+
+        #################################################
+        ######## FIND DARK WITH CLOSEST EXPOSURE TIME
+        #################################################
+        # find dark with closest exposure time
+        flat_exptime = master_flat.header['EXPTIME']
+        # find dark with closest exposure time
+        delta_t = abs(flat_exptime - dark_exptimes)
+        closest_dark = dark_exptimes[delta_t == min(delta_t)]
+        # open the appropriate dark
+        hdu1 = fits.open('dark-combined-'+str(closest_dark)+'.fits')
+        gaincorrected_dark = CCDData(hdu1[0].data, unit=u.electron, meta=header)
+        hdu1.close()
+
+                
+        master_flat_dark = ccdproc.ccd_process(gaincorrected_master_flat, readnoise=rdnoise, dark_frame=gaincorrected_dark, exposure_key='exposure', exposure_unit=u.second, dark_scale=True, gain_corrected=True)
 
         print('writing out combined flat for filter ',filt)
         # write output    
@@ -258,6 +310,10 @@ if process_science:
     for filt in all_filters:
         sci_files = icz.files_filtered(imagetyp = ccdkeyword['light'], filter = filt) 
         master_flat = 'flat -'+filt+'.fits'
+        if not(os.path.exists(master_flat)):
+            print('WARNING: no flat found for filter ',filt)
+            print('skipping images in this filter')
+            continue
         hdu = fits.open(master_flat)
         gaincorrected_master_flat = CCDData(hdu[0].data, unit=u.electron)
         hdu.close()
@@ -271,10 +327,27 @@ if process_science:
                 #ccd = CCDData(hdu1[0].data, unit=u.adu,meta={'exposure':header['exposure']})
                 ccd = CCDData(hdu1[0].data, unit=u.adu,meta=header)
 
-                newccd = ccdproc.ccd_process(ccd,error=True, gain=gain, readnoise=rdnoise, master_bias = gaincorrected_master_bias, dark_frame=gaincorrected_master_dark_bias, exposure_key='exposure', exposure_unit=u.second, dark_scale=True,master_flat = gaincorrected_master_flat, gain_corrected=True)
+                #newccd = ccdproc.ccd_process(ccd,error=True, gain=gain, readnoise=rdnoise, master_bias = gaincorrected_master_bias, dark_frame=gaincorrected_master_dark, exposure_key='exposure', exposure_unit=u.second, dark_scale=True,master_flat = gaincorrected_master_flat, gain_corrected=True)
 
-                header['HISTORY'] = '= Processing by ccdproc: bias, dark, flat '
-                fits.writeto('fdb'+f,newccd,header, overwrite=True)
+
+                #################################################
+                ######## FIND DARK WITH CLOSEST EXPOSURE TIME
+                #################################################
+                # find dark with closest exposure time
+                sci_exptime = header['EXPTIME']
+                # find dark with closest exposure time
+                delta_t = abs(sci_exptime - dark_exptimes)
+                closest_dark = dark_exptimes[delta_t == min(delta_t)]
+                # open the appropriate dark
+                hdu1 = fits.open('dark-combined-'+str(closest_dark)+'.fits')
+                gaincorrected_dark = CCDData(hdu1[0].data, unit=u.electron, meta=header)
+                hdu1.close()
+                
+                newccd = ccdproc.ccd_process(ccd,error=True, gain=gain, readnoise=rdnoise, dark_frame=gaincorrected_dark, exposure_key='exposure', exposure_unit=u.second, dark_scale=True,master_flat = gaincorrected_master_flat, gain_corrected=True)
+
+                header['HISTORY'] = '= Processing by ccdproc: dark, flat '
+                #fits.writeto('fdb'+f,newccd,header, overwrite=True)
+                fits.writeto('fd'+f,newccd,header, overwrite=True)
                 hdu1.close()
 
 else:
