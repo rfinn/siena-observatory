@@ -100,8 +100,8 @@ args = parser.parse_args()
 
 zerocombine = 0
 runzapcosmic = 0
-darkcombine = 1
-flatcombine = 1
+darkcombine = 0
+flatcombine = 0
 process_science = 1
 cleanup = 0
 
@@ -151,7 +151,7 @@ if zerocombine:
     # feed list into ccdproc.combine, output bias
 
     master_bias = ccdproc.combine(bias_files,method='average',sigma_clip=True,unit=u.adu)
-    gaincorrected_master_bias = ccdproc.gain_correct(master_bias,gain)
+    gaincorrected_master_bias = ccdproc.gain_correct(master_bias,float(gain))
     print('writing fits file for master bias')
     gaincorrected_master_bias.write('bias-combined.fits',overwrite=True)
 else:
@@ -168,15 +168,16 @@ else:
 
 # change to use the dark with the closest exposure time
 
+exptimes = np.array(ic.values('exptime'))
+
+image_types = np.array(ic.values('imagetyp'))
+
 if darkcombine:
 
     # select all files with imagetyp=='dark'
     # want to read in one set of long exposure dark frames, like 120 s
     # observers should take a set of darks that correspond to longest exposure time
     # e.g. 120s
-    exptimes = np.array(ic.values('exptime'))
-
-    image_types = np.array(ic.values('imagetyp'))
 
     set_exptime=set(exptimes[image_types == ccdkeyword['dark']])
     dark_exptimes_set = np.array(list(set_exptime),'f')
@@ -198,7 +199,7 @@ if darkcombine:
 
         dark_files = ic.files_filtered(imagetyp = ccdkeyword['dark'], exptime = expt)
         dark = ccdproc.combine(dark_files,method='average',sigma_clip=True,unit=u.adu)
-        gaincorrected_dark = ccdproc.gain_correct(dark,gain)
+        gaincorrected_dark = ccdproc.gain_correct(dark,float(gain))
         '''
         * subtract bias from combined dark frames
     
@@ -273,8 +274,8 @@ if flatcombine:
             continue
         # combine images into one flat
         print('combining flats for filter ',filt)
-        master_flat = ccdproc.combine(flat_files,method='median',sigma_clip=True,scale=np.median,unit=u.adu)
-        gaincorrected_master_flat = ccdproc.gain_correct(master_flat,gain)
+        my_master_flat = ccdproc.combine(flat_files,method='median',unit=u.adu)
+        gaincorrected_master_flat = ccdproc.gain_correct(my_master_flat,gain)
         # subtract bias
         # subtract the scaled dark
         print('subtracting bias and scaled dark from combined flat for filter ',filt)
@@ -284,7 +285,7 @@ if flatcombine:
         ######## FIND DARK WITH CLOSEST EXPOSURE TIME
         #################################################
         # find dark with closest exposure time
-        flat_exptime = master_flat.header['EXPTIME']
+        flat_exptime = my_master_flat.header['EXPTIME']
         # find dark with closest exposure time
         delta_t = abs(flat_exptime - dark_exptimes_set)
         closest_dark = dark_exptimes_set[delta_t == min(delta_t)]
@@ -294,11 +295,12 @@ if flatcombine:
         hdu1.close()
 
                 
-        master_flat_dark = ccdproc.ccd_process(gaincorrected_master_flat, readnoise=rdnoise, dark_frame=gaincorrected_dark, exposure_key='exposure', exposure_unit=u.second, dark_scale=True, gain_corrected=True)
+        #master_flat_dark = ccdproc.ccd_process(gaincorrected_master_flat, readnoise=rdnoise, dark_frame=gaincorrected_dark, exposure_key='exposure', exposure_unit=u.second, dark_scale=True, gain_corrected=True)
+        master_flat_dark = ccdproc.subtract_dark(gaincorrected_master_flat, gaincorrected_dark, exposure_time='exposure', exposure_unit=u.second,scale=False)
 
         print('writing out combined flat for filter ',filt)
         # write output    
-        master_flat_dark.write('flat -'+filt+'.fits',overwrite=True)
+        master_flat_dark.write('flat-'+filt+'.fits',overwrite=True)
 else:
     print('skipping flat combine')
 
@@ -309,7 +311,7 @@ if process_science:
     print('\n Processing science frames!!!')
     for filt in all_filters:
         sci_files = icz.files_filtered(imagetyp = ccdkeyword['light'], filter = filt) 
-        master_flat = 'flat -'+filt+'.fits'
+        master_flat = 'flat-'+filt+'.fits'
         if not(os.path.exists(master_flat)):
             print('WARNING: no flat found for filter ',filt)
             print('skipping images in this filter')
@@ -343,7 +345,7 @@ if process_science:
                 gaincorrected_dark = CCDData(hdu1[0].data, unit=u.electron, meta=header)
                 hdu1.close()
                 
-                newccd = ccdproc.ccd_process(ccd,error=True, gain=gain, readnoise=rdnoise, dark_frame=gaincorrected_dark, exposure_key='exposure', exposure_unit=u.second, dark_scale=True,master_flat = gaincorrected_master_flat, gain_corrected=True)
+                newccd = ccdproc.ccd_process(ccd,error=True, gain=gain, readnoise=rdnoise, dark_frame=gaincorrected_dark, exposure_key='exposure', exposure_unit=u.second,master_flat = gaincorrected_master_flat, gain_corrected=True)
 
                 header['HISTORY'] = '= Processing by ccdproc: dark, flat '
                 #fits.writeto('fdb'+f,newccd,header, overwrite=True)
