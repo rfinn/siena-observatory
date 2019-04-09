@@ -98,8 +98,8 @@ parser.add_argument('--nobias', dest = 'nobias', default = False, action = 'stor
 parser.add_argument('--nodark', dest = 'nodark', default = False, action = 'store_true', help = 'Skip dark subtraction')
 args = parser.parse_args()
 
-zerocombine = 1
-runzapcosmic = 1
+zerocombine = 0
+runzapcosmic = 0
 darkcombine = 1
 flatcombine = 1
 process_science = 1
@@ -175,10 +175,11 @@ if darkcombine:
     # observers should take a set of darks that correspond to longest exposure time
     # e.g. 120s
     exptimes = np.array(ic.values('exptime'))
-    dark_exptimes = exptimes
+
     image_types = np.array(ic.values('imagetyp'))
 
     set_exptime=set(exptimes[image_types == ccdkeyword['dark']])
+    dark_exptimes_set = np.array(list(set_exptime),'f')
     max_exposure = max(exptimes[image_types == ccdkeyword['dark']])
     '''
     * subtract bias from combined dark frames
@@ -214,7 +215,7 @@ else:
     dark_exptimes = np.array(ic.values('exptime'))
     dimage_types = np.array(ic.values('imagetyp'))
 
-    dark_exptimes=set(dark_exptimes[image_types == ccdkeyword['dark']])
+    dark_exptimes_set=np.array(list(set(dark_exptimes[image_types == ccdkeyword['dark']])),'f')
 
 
 
@@ -285,10 +286,10 @@ if flatcombine:
         # find dark with closest exposure time
         flat_exptime = master_flat.header['EXPTIME']
         # find dark with closest exposure time
-        delta_t = abs(flat_exptime - dark_exptimes)
-        closest_dark = dark_exptimes[delta_t == min(delta_t)]
+        delta_t = abs(flat_exptime - dark_exptimes_set)
+        closest_dark = dark_exptimes_set[delta_t == min(delta_t)]
         # open the appropriate dark
-        hdu1 = fits.open('dark-combined-'+str(closest_dark)+'.fits')
+        hdu1 = fits.open('dark-combined-'+str(int(closest_dark[0]))+'.fits')
         gaincorrected_dark = CCDData(hdu1[0].data, unit=u.electron, meta=header)
         hdu1.close()
 
@@ -297,7 +298,7 @@ if flatcombine:
 
         print('writing out combined flat for filter ',filt)
         # write output    
-        master_flat_bias_dark.write('flat -'+filt+'.fits',overwrite=True)
+        master_flat_dark.write('flat -'+filt+'.fits',overwrite=True)
 else:
     print('skipping flat combine')
 
@@ -335,10 +336,10 @@ if process_science:
                 # find dark with closest exposure time
                 sci_exptime = header['EXPTIME']
                 # find dark with closest exposure time
-                delta_t = abs(sci_exptime - dark_exptimes)
-                closest_dark = dark_exptimes[delta_t == min(delta_t)]
+                delta_t = abs(sci_exptime - dark_exptimes_set)
+                closest_dark = dark_exptimes_set[delta_t == min(delta_t)]
                 # open the appropriate dark
-                hdu1 = fits.open('dark-combined-'+str(closest_dark)+'.fits')
+                hdu1 = fits.open('dark-combined-'+str(int(closest_dark[0]))+'.fits')
                 gaincorrected_dark = CCDData(hdu1[0].data, unit=u.electron, meta=header)
                 hdu1.close()
                 
