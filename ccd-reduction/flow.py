@@ -93,18 +93,17 @@ import argparse
 
 
 
-parser = argparse.ArgumentParser(description ='Process images through flatfiel
-ding')
+parser = argparse.ArgumentParser(description ='Process images through flatfielding')
 parser.add_argument('--nobias', dest = 'nobias', default = False, action = 'store_true', help = 'Skip bias subtraction')
 parser.add_argument('--nodark', dest = 'nodark', default = False, action = 'store_true', help = 'Skip dark subtraction')
 args = parser.parse_args()
 
-zerocombine = 0
-runzapcosmic = 0
-darkcombine = 0
-flatcombine = 0
-process_science = 0
-cleanup = 1
+zerocombine = 1
+runzapcosmic = 1
+darkcombine = 1
+flatcombine = 1
+process_science = 1
+cleanup = 0
 
 # replace these with real values
 # for Siena SBIG STL-11000M CCD
