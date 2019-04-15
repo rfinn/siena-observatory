@@ -14,9 +14,6 @@ conda install -c astropy astropy ccdproc photutils
 conda install jupyterlab ipython
 ```
 
-[End with an example of getting some data out of the system or using it for a
-little demo.]
-
 ## Authors
 
 * [**Rose Finn**](https://github.com/rfinn)
