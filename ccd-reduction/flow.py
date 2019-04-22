@@ -1,18 +1,18 @@
 '''
 
 GOAL:
-- to reduce a night's worth of ccd data through flatfielding
+* to reduce a night's worth of ccd data through flatfielding
+
+* NOTE: the counts in the bias for the STL-11000M are higher than long dark exposures, so skipping bias subtraction for now.  The chip does not have an overscan region.
 
 REQUIREMENTS FOR THE DATA:
 
-In its current version, this program assumes that you have the following calibration files
+* In its current version, this program assumes that you have the following calibration files
 - flatfield
 - bias
 - darks
 
-In the near future, we will enable you to indicate that you took only darks, or only bias frames.
-
-Be sure to move any files that are bod (for whatever reason) into a subdirectory (e.g. junk/).
+* NOTE: Be sure to move any files that are bod (for whatever reason) into a subdirectory (e.g. junk/).
 
 
 EXAMPLE:
@@ -62,8 +62,10 @@ and sky flats from
 
 
 TO DO:
-- add option to subtract bias
-- add option to subtract dark
+
+UPDATES:
+- added option to subtract bias
+- added option to subtract dark
 - use dark with matching exposure time if it exists
 
 
