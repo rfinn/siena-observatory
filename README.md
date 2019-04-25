@@ -14,6 +14,22 @@ conda install -c astropy astropy ccdproc photutils
 conda install jupyterlab ipython
 ```
 
+Building astrometry.net requires a little work (should use a Docker container),
+but I had to do
+
+```
+brew install cairo
+brew install netpbm
+export NETPBM_LIB="-L/usr/local/lib -lnetpbm"
+export NETPBM_INC=-I/usr/local/include/netpbm
+export CAIRO_LIB="-L/usr/local/lib -lcairo"
+export CAIRO_INC=-I/usr/local/include/cairo
+make
+make extra
+make install INSTALL_DIR=/usr/local/astrometry
+```
+
+
 ## Authors
 
 * [**Rose Finn**](https://github.com/rfinn)
