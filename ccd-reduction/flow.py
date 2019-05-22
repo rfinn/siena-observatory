@@ -63,10 +63,14 @@ and sky flats from
 
 TO DO:
 
+
 UPDATES:
 - added option to subtract bias
 - added option to subtract dark
 - use dark with matching exposure time if it exists
+
+4/22/19
+- adding step at the end to subtract the median of each row.  This will subtract the sky, and will hopefully correct for the residual gradient that we are not subtracting.
 
 
 ################################################################
@@ -101,11 +105,11 @@ parser.add_argument('--nodark', dest = 'nodark', default = False, action = 'stor
 args = parser.parse_args()
 
 zerocombine = 0
-runzapcosmic = 0
-darkcombine = 0
-flatcombine = 0
+runzapcosmic = 1
+darkcombine = 1
+flatcombine = 1
 process_science = 1
-cleanup = 0
+cleanup = 1
 
 # replace these with real values
 # for Siena SBIG STL-11000M CCD
@@ -117,7 +121,7 @@ stl_gain = 1.6#e-/ADU binned
 gain = stl_gain*u.electron/u.adu
 rdnoise = stl_rdnoise*u.electron
 
-# check theses using 1/28/19 data
+# check these using 1/28/19 data
 ccdkeyword={'light':'Light Frame','dark':'Dark Frame','flat':'Flat Field','bias':'Bias Frame'}
 
 
@@ -157,12 +161,16 @@ if zerocombine:
     print('writing fits file for master bias')
     gaincorrected_master_bias.write('bias-combined.fits',overwrite=True)
 else:
-    print('not combining zeros')
-    print('\t reading in bias-combined.fits instead')
-    hdu1 = fits.open('bias-combined.fits')
-    header = hdu1[0].header
-    gaincorrected_master_bias = CCDData(hdu1[0].data, unit=u.electron, meta=header)
-    hdu1.close()
+    print('args.nobias = ',args.nobias)
+    if not(args.nobias):
+        print('not combining zeros')
+        print('\t reading in bias-combined.fits instead')
+        hdu1 = fits.open('bias-combined.fits')
+        header = hdu1[0].header
+        gaincorrected_master_bias = CCDData(hdu1[0].data, unit=u.electron, meta=header)
+        hdu1.close()
+    else:
+        print('not using a bias frame')
 ###################################################
 # COMBINE DARKS
 ###################################################
@@ -201,7 +209,7 @@ if darkcombine:
 
         dark_files = ic.files_filtered(imagetyp = ccdkeyword['dark'], exptime = expt)
         dark = ccdproc.combine(dark_files,method='average',sigma_clip=True,unit=u.adu)
-        gaincorrected_dark = ccdproc.gain_correct(dark,float(gain))
+        gaincorrected_dark = ccdproc.gain_correct(dark,gain)
         '''
         * subtract bias from combined dark frames
     
@@ -293,6 +301,7 @@ if flatcombine:
         closest_dark = dark_exptimes_set[delta_t == min(delta_t)]
         # open the appropriate dark
         hdu1 = fits.open('dark-combined-'+str(int(closest_dark[0]))+'.fits')
+        header = hdu1[0].header
         gaincorrected_dark = CCDData(hdu1[0].data, unit=u.electron, meta=header)
         hdu1.close()
 
@@ -344,6 +353,7 @@ if process_science:
                 closest_dark = dark_exptimes_set[delta_t == min(delta_t)]
                 # open the appropriate dark
                 hdu1 = fits.open('dark-combined-'+str(int(closest_dark[0]))+'.fits')
+                header = hdu1[0].header
                 gaincorrected_dark = CCDData(hdu1[0].data, unit=u.electron, meta=header)
                 hdu1.close()
                 
@@ -370,7 +380,7 @@ else:
 if cleanup:
     # moved processed a subdirectory
     dirname = 'PROCESSED'
-    prefix = 'fdb'
+    prefix = 'fd'
     if not(os.path.exists(dirname)):
         os.mkdir(dirname)
     os.system('mv '+prefix+'*.fit* '+dirname+'/.')
