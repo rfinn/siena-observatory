@@ -353,8 +353,8 @@ if process_science:
                 closest_dark = dark_exptimes_set[delta_t == min(delta_t)]
                 # open the appropriate dark
                 hdu1 = fits.open('dark-combined-'+str(int(closest_dark[0]))+'.fits')
-                header = hdu1[0].header
-                gaincorrected_dark = CCDData(hdu1[0].data, unit=u.electron, meta=header)
+                dheader = hdu1[0].header
+                gaincorrected_dark = CCDData(hdu1[0].data, unit=u.electron, meta=dheader)
                 hdu1.close()
                 
                 newccd = ccdproc.ccd_process(ccd,error=True, gain=gain, readnoise=rdnoise, dark_frame=gaincorrected_dark, exposure_key='exposure', exposure_unit=u.second,master_flat = gaincorrected_master_flat, gain_corrected=True)
