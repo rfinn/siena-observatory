@@ -101,9 +101,9 @@ import argparse
 
 parser = argparse.ArgumentParser(description ='Process images through flatfielding')
 parser.add_argument('--zap', dest = 'zap', default = False, action = 'store_true', help = 'Cosmic ray correction.')
-parser.add_argument('--zerocombine', dest = 'combinebias', default = False, action = 'store_true', help = 'Combine bias frames')
+parser.add_argument('--zerocombine', dest = 'zerocombine', default = False, action = 'store_true', help = 'Combine bias frames')
 parser.add_argument('--bias', dest = 'bias', default = False, action = 'store_true', help = 'Subtract bias frame from images')
-parser.add_argument('--darkcombine', dest = 'dark', default = False, action = 'store_true', help = 'Combine dark frames')
+parser.add_argument('--darkcombine', dest = 'darkcombine', default = False, action = 'store_true', help = 'Combine dark frames')
 parser.add_argument('--flatcombine', dest = 'flatcombine', default = False, action = 'store_true', help = 'Combine flats')
 parser.add_argument('--science', dest = 'science', default = False, action = 'store_true', help = 'Process science frames')
 parser.add_argument('--cleanup', dest = 'cleanup', default = False, action = 'store_true', help = 'Clean up directory - move files to appropriate subdirectories.')
