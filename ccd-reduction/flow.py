@@ -100,16 +100,22 @@ import argparse
 
 
 parser = argparse.ArgumentParser(description ='Process images through flatfielding')
-parser.add_argument('--nobias', dest = 'nobias', default = False, action = 'store_true', help = 'Skip bias subtraction')
-parser.add_argument('--nodark', dest = 'nodark', default = False, action = 'store_true', help = 'Skip dark subtraction')
+parser.add_argument('--zap', dest = 'zap', default = False, action = 'store_true', help = 'Cosmic ray correction.')
+parser.add_argument('--zerocombine', dest = 'combinebias', default = False, action = 'store_true', help = 'Combine bias frames')
+parser.add_argument('--bias', dest = 'bias', default = False, action = 'store_true', help = 'Subtract bias frame from images')
+parser.add_argument('--darkcombine', dest = 'dark', default = False, action = 'store_true', help = 'Combine dark frames')
+parser.add_argument('--flatcombine', dest = 'flatcombine', default = False, action = 'store_true', help = 'Combine flats')
+parser.add_argument('--science', dest = 'science', default = False, action = 'store_true', help = 'Process science frames')
+parser.add_argument('--cleanup', dest = 'cleanup', default = False, action = 'store_true', help = 'Clean up directory - move files to appropriate subdirectories.')
 args = parser.parse_args()
 
-zerocombine = 0
-runzapcosmic = 1
-darkcombine = 1
-flatcombine = 1
-process_science = 1
-cleanup = 1
+zerocombine = args.zerocombine
+usebias = args.bias
+runzapcosmic = args.zap
+darkcombine = args.darkcombine
+flatcombine = args.flatcombine
+process_science = args.science
+cleanup = args.cleanup
 
 # replace these with real values
 # for Siena SBIG STL-11000M CCD
@@ -151,7 +157,7 @@ ic = ImageFileCollection(os.getcwd(),keywords='*',glob_include='*.fit*')
 
 # combine bias frames
 
-if zerocombine:
+if args.zerocombine:
     # select all files with imagetyp=='bias'
     bias_files = ic.files_filtered(imagetyp = ccdkeyword['bias'])
     # feed list into ccdproc.combine, output bias
@@ -161,8 +167,7 @@ if zerocombine:
     print('writing fits file for master bias')
     gaincorrected_master_bias.write('bias-combined.fits',overwrite=True)
 else:
-    print('args.nobias = ',args.nobias)
-    if not(args.nobias):
+    if args.bias:
         print('not combining zeros')
         print('\t reading in bias-combined.fits instead')
         hdu1 = fits.open('bias-combined.fits')
@@ -182,7 +187,7 @@ exptimes = np.array(ic.values('exptime'))
 
 image_types = np.array(ic.values('imagetyp'))
 
-if darkcombine:
+if args.darkcombine:
 
     # select all files with imagetyp=='dark'
     # want to read in one set of long exposure dark frames, like 120 s
@@ -272,7 +277,7 @@ except KeyError:
 
 # read in available dark files
 # dark-bias-
-if flatcombine:     
+if args.flatcombine:     
     # loop through filters, combine all the flats in that filter
     for filt in all_filters:
         # get of all flats in this filter
@@ -377,7 +382,7 @@ else:
 ###### CLEANING UP
 #####################################################
 
-if cleanup:
+if args.cleanup:
     # moved processed a subdirectory
     dirname = 'PROCESSED'
     prefix = 'fd'
